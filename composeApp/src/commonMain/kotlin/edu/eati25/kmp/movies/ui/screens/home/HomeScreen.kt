@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -28,6 +27,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Icon
+import androidx.compose.material3.TextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.ui.graphics.Color
@@ -39,6 +39,17 @@ import kmpmovies.composeapp.generated.resources.app_name
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.annotation.KoinExperimentalAPI
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.material3.CenterAlignedTopAppBar
+
 
 @OptIn(ExperimentalMaterial3Api::class, KoinExperimentalAPI::class)
 @Composable
@@ -52,25 +63,70 @@ fun HomeScreen(
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        { Text(stringResource(Res.string.app_name)) },
+                        {
+                            CenterAlignedTopAppBar(
+                                title = {
+                                    Text(
+                                        text = stringResource(Res.string.app_name),
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            color = Color(0xFF212121), // Gris oscuro profesional
+                                            fontWeight = FontWeight.SemiBold,
+                                            letterSpacing = 0.5.sp,
+                                            fontFamily = FontFamily.SansSerif
+                                        )
+                                    )
+                                },
+                                scrollBehavior = scrollBehavior
+                            )
+                        },
                         scrollBehavior = scrollBehavior
                     )
                 },
                 modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection)
             ) { padding ->
                 val state = viewModel.state
+                var searchQuery by remember { mutableStateOf("") }
 
                 LoadingIndicator(state.isLoading)
 
-                LazyVerticalGrid(
-                    columns = GridCells.Adaptive(120.dp),
-                    contentPadding = PaddingValues(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.padding(padding)
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize()
                 ) {
-                    items(state.movies, key = { it.id }) { movie ->
-                        MovieItem(movie) { onMovieClick(movie) }
+                    TextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        placeholder = { Text("Buscar película...") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            disabledContainerColor = Color.White,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        )
+                    )
+
+                    val filteredMovies = state.movies.filter {
+                        it.title.contains(searchQuery, ignoreCase = true)
+                    }
+
+                    LazyVerticalGrid(
+                        columns = GridCells.Adaptive(120.dp),
+                        contentPadding = PaddingValues(4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        items(filteredMovies, key = { it.id }) { movie ->
+                            MovieItem(movie) { onMovieClick(movie) }
+                        }
                     }
                 }
             }
